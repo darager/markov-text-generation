@@ -13,7 +13,7 @@ let getWordPairs text pairSize =
 let joinWords words =
     words |> String.concat " "
 
-let splitWordPair (wordpair : string list) =
+let splitWordPair (wordpair : string[]) =
     let length = wordpair.Length
     let precedingWords = wordpair |> Seq.take (length-1)
     (joinWords precedingWords, wordpair.[length-1])
@@ -27,10 +27,16 @@ let updateMarkovMap (map : Map<_,_>) key value =
         map |> Map.add key [value]
 
 
-let getMarkovMap pairSize text =
-    Map
+let mapBuilder map words =
+    let keyValuePair = splitWordPair words
+    keyValuePair ||> updateMarkovMap map
+
+let getMarkovMap text pairSize =
+    getWordPairs text pairSize
+    |> Seq.fold mapBuilder Map.empty
 
 
-File.ReadAllText "./example-file.txt"
-|> getMarkovMap 4
-|> printfn "%A"
+
+let text = File.ReadAllText "./example-file.txt"
+let map = getMarkovMap text 4
+printfn "%A" map
