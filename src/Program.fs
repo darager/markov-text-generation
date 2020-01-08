@@ -1,4 +1,5 @@
-﻿open System.IO
+﻿open System
+open System.IO
 
 let splitText (text : string) =
     text.Split [|' '|]
@@ -35,8 +36,42 @@ let getMarkovMap text pairSize =
     getWordPairs text pairSize
     |> Seq.fold mapBuilder Map.empty
 
-
-
+let pairlength = 3
 let text = File.ReadAllText "./example-file.txt"
-let map = getMarkovMap text 4
-printfn "%A" map
+let map = getMarkovMap text pairlength
+
+let keys = getWordPairs text pairlength
+           |> Seq.map splitWordPair
+           |> Seq.map (fun (key,_) -> key)
+           |> Seq.toArray
+
+let rnd = Random()
+let startPhrase = keys.[rnd.Next(keys.Length)]
+
+let textLength = 100
+let mutable newText = splitText startPhrase
+
+let getPreviousWords words amount =
+    words
+    |> Seq.windowed amount
+    |> Seq.last
+
+let getRandomItem seq =
+    let length = Seq.length seq
+    seq |> Seq.item (rnd.Next length)
+
+let getNextWord (map : Map<_,_>) (previousWords : string[]) =
+    let previousPhrase = joinWords previousWords
+    let possibleWords = map.[previousPhrase]
+    let length = possibleWords |> Seq.length
+    getRandomItem possibleWords
+
+let appendNewWord nextWord newText =
+    newText @ nextWord
+
+
+getPreviousWords newText (pairlength-1)
+|> getNextWord map
+|> printfn "%A"
+
+
