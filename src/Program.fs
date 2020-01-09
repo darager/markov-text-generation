@@ -1,6 +1,9 @@
 ﻿open System
 open System.IO
 
+let removeLineBreaks (text : string) =
+    text.Replace ("\n", " ")
+
 let splitText (text : string) =
     text.Split [|' '|]
 
@@ -8,7 +11,8 @@ let createWordPairs pairSize (words : string[]) =
     words |> Seq.windowed pairSize
 
 let getWordPairs text pairSize =
-    splitText text
+    removeLineBreaks text
+    |> splitText
     |> createWordPairs pairSize
 
 let joinWords words =
@@ -49,7 +53,7 @@ let rnd = Random()
 let startPhrase = keys.[rnd.Next(keys.Length)]
 
 let textLength = 100
-let newText = splitText startPhrase
+let newText = splitText startPhrase |> Array.toList
 
 let getPreviousWords words phraseLength =
     words
@@ -60,21 +64,29 @@ let getRandomItem seq =
     let length = Seq.length seq
     seq |> Seq.item (rnd.Next length)
 
-let getNextWord (map : Map<string,string seq>) (previousWords : string[]) =
+let getNextWord (map : Map<string,string list>) (previousWords : string[]) =
     joinWords previousWords
     |> map.TryGetValue
-    |> (fun (k,v) -> getRandomItem v)
+    |> fun (_,v) -> getRandomItem v
 
 let appendNewWord nextWord newText =
     newText @ nextWord
 
-let buildNewText newText map =
+let buildNewText map newText =
     getPreviousWords newText (pairlength-1)
     |> getNextWord map
-    |> fun w -> newText |> List.append [w]
+    |> fun w -> newText @ [w]
     |> fun text -> (map, text)
 
+let getNewText markovMap =
+    (markovMap, newText)
+    ||> buildNewText
+    ||> buildNewText
+    ||> buildNewText
+    ||> buildNewText
+    ||> buildNewText
+    |> fun (_, text) -> text
+    |> joinWords
 
-[0..100]
-|> Seq.fold buildNewText newText map
+getNewText map
 |> printfn "%A"
