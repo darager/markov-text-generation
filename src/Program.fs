@@ -49,29 +49,32 @@ let rnd = Random()
 let startPhrase = keys.[rnd.Next(keys.Length)]
 
 let textLength = 100
-let mutable newText = splitText startPhrase
+let newText = splitText startPhrase
 
-let getPreviousWords words amount =
+let getPreviousWords words phraseLength =
     words
-    |> Seq.windowed amount
+    |> Seq.windowed phraseLength
     |> Seq.last
 
 let getRandomItem seq =
     let length = Seq.length seq
     seq |> Seq.item (rnd.Next length)
 
-let getNextWord (map : Map<_,_>) (previousWords : string[]) =
-    let previousPhrase = joinWords previousWords
-    let possibleWords = map.[previousPhrase]
-    let length = possibleWords |> Seq.length
-    getRandomItem possibleWords
+let getNextWord (map : Map<string,string seq>) (previousWords : string[]) =
+    joinWords previousWords
+    |> map.TryGetValue
+    |> (fun (k,v) -> getRandomItem v)
 
 let appendNewWord nextWord newText =
     newText @ nextWord
 
+let buildNewText newText map =
+    getPreviousWords newText (pairlength-1)
+    |> getNextWord map
+    |> fun w -> newText |> List.append [w]
+    |> fun text -> (map, text)
 
-getPreviousWords newText (pairlength-1)
-|> getNextWord map
+
+[0..100]
+|> Seq.fold buildNewText newText map
 |> printfn "%A"
-
-
