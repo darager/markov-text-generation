@@ -10,8 +10,9 @@ let splitText (text : string) =
 let createWordPairs pairSize (words : string[]) =
     words |> Seq.windowed pairSize
 
-let getWordPairs text pairSize =
-    removeLineBreaks text
+let getWordPairs pairSize text =
+    text
+    |> removeLineBreaks
     |> splitText
     |> createWordPairs pairSize
 
@@ -37,56 +38,54 @@ let mapBuilder map words =
     keyValuePair ||> updateMarkovMap map
 
 let getMarkovMap text pairSize =
-    getWordPairs text pairSize
+    text
+    |> getWordPairs pairSize
     |> Seq.fold mapBuilder Map.empty
 
-let pairlength = 3
-let text = File.ReadAllText "./example-file.txt"
-let map = getMarkovMap text pairlength
-
-let keys = getWordPairs text pairlength
-           |> Seq.map splitWordPair
-           |> Seq.map (fun (key,_) -> key)
-           |> Seq.toArray
-
 let rnd = Random()
-let startPhrase = keys.[rnd.Next(keys.Length)]
-
-let textLength = 100
-let newText = splitText startPhrase |> Array.toList
+let getRandomItem seq =
+    let length = Seq.length seq
+    seq |> Seq.item (rnd.Next length)
 
 let getPreviousWords words phraseLength =
     words
     |> Seq.windowed phraseLength
     |> Seq.last
 
-let getRandomItem seq =
-    let length = Seq.length seq
-    seq |> Seq.item (rnd.Next length)
-
-let getNextWord (map : Map<string,string list>) (previousWords : string[]) =
-    joinWords previousWords
+let getNextWord (map : Map<_,_>) (previousWords : string[]) =
+    previousWords
+    |> joinWords
     |> map.TryGetValue
     |> fun (_,v) -> getRandomItem v
 
-let appendNewWord nextWord newText =
-    newText @ nextWord
-
-let buildNewText map newText =
+let buildNewText pairlength map newText =
     getPreviousWords newText (pairlength-1)
     |> getNextWord map
     |> fun w -> newText @ [w]
     |> fun text -> (map, text)
 
-let getNewText markovMap =
-    (markovMap, newText)
-    ||> buildNewText
-    ||> buildNewText
-    ||> buildNewText
-    ||> buildNewText
-    ||> buildNewText
+let appendNewWords markovMap generatedText pairlength amount =
+    (markovMap, generatedText)
+    ||> buildNewText pairlength
+    ||> buildNewText pairlength
+    ||> buildNewText pairlength
+    ||> buildNewText pairlength
+    ||> buildNewText pairlength
     |> fun (_, text) -> text
     |> joinWords
 
-getNewText map
+
+let pairlength = 3
+let text = File.ReadAllText "./example-file.txt"
+let map = getMarkovMap text pairlength
+
+let keys = getWordPairs pairlength text
+           |> Seq.map splitWordPair
+           |> Seq.map (fun (key,_) -> key)
+           |> Seq.toArray
+
+let startPhrase = getRandomItem keys
+let newText = splitText startPhrase |> Array.toList
+
+appendNewWords map newText pairlength 100
 |> printfn "%A"
