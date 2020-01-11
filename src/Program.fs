@@ -1,91 +1,102 @@
 ﻿open System
 open System.IO
 
-let removeLineBreaks (text : string) =
-    text.Replace ("\n", " ")
-
 let splitText (text : string) =
     text.Split [|' '|]
 
-let createWordPairs pairSize (words : string[]) =
-    words |> Seq.windowed pairSize
+let removeLinebreak (text : string) =
+    text.Replace ("\n", " ")
 
-let getWordPairs pairSize text =
-    text
-    |> removeLineBreaks
-    |> splitText
-    |> createWordPairs pairSize
+let removeInvalidWords words =
+    words
+    |> Seq.map removeLinebreak
+    |> Seq.filter (String.IsNullOrEmpty >> not)
 
-let joinWords words =
-    words |> String.concat " "
+let joinWords = String.concat " "
 
-let splitWordPair (wordpair : string[]) =
+let splitOffLastWord (wordpair : string[]) =
     let length = wordpair.Length
     let precedingWords = wordpair |> Seq.take (length-1)
-    (joinWords precedingWords, wordpair.[length-1])
+    (precedingWords, wordpair.[length-1])
 
-let updateMarkovMap (map : Map<_,_>) key value =
-    if map.ContainsKey key then
-        let previousValue = map.[key]
-        let map = map |> Map.remove key
-        map |> Map.add key (value :: previousValue)
-    else
-        map |> Map.add key [value]
+let concatPhrase (phrase, followingWord) =
+    (joinWords phrase, followingWord)
 
-
-let mapBuilder map words =
-    let keyValuePair = splitWordPair words
-    keyValuePair ||> updateMarkovMap map
-
-let getMarkovMap text pairSize =
+let getPhraseWordPairs text phraseLength =
     text
-    |> getWordPairs pairSize
-    |> Seq.fold mapBuilder Map.empty
+    |> splitText
+    |> removeInvalidWords
+    |> Seq.windowed (phraseLength+1)
+    |> Seq.map (splitOffLastWord >> concatPhrase)
 
-let rnd = Random()
-let getRandomItem seq =
-    let length = Seq.length seq
-    seq |> Seq.item (rnd.Next length)
-
-let getPreviousWords words phraseLength =
-    words
-    |> Seq.windowed phraseLength
-    |> Seq.last
-
-let getNextWord (map : Map<_,_>) (previousWords : string[]) =
-    previousWords
-    |> joinWords
-    |> map.TryGetValue
-    |> fun (_,v) -> getRandomItem v
-
-let buildNewText pairlength map newText =
-    getPreviousWords newText (pairlength-1)
-    |> getNextWord map
-    |> fun w -> newText @ [w]
-    |> fun text -> (map, text)
-
-let appendNewWords markovMap generatedText pairlength amount =
-    (markovMap, generatedText)
-    ||> buildNewText pairlength
-    ||> buildNewText pairlength
-    ||> buildNewText pairlength
-    ||> buildNewText pairlength
-    ||> buildNewText pairlength
-    |> fun (_, text) -> text
-    |> joinWords
+let updateMarkovMap (map : Map<string,string list>) (phrase, nextWord) =
+    if map.ContainsKey phrase then
+        let previousValue = map.[phrase]
+        map
+        |> Map.remove phrase
+        |> Map.add phrase (nextWord :: previousValue)
+    else
+        map |> Map.add phrase [nextWord]
 
 
-let pairlength = 3
+let getMarkovMap (phraseWordPairs : seq<string * string>) =
+    phraseWordPairs
+    |> Seq.fold updateMarkovMap Map.empty
+
+
 let text = File.ReadAllText "./example-file.txt"
-let map = getMarkovMap text pairlength
 
-let keys = getWordPairs pairlength text
-           |> Seq.map splitWordPair
-           |> Seq.map (fun (key,_) -> key)
-           |> Seq.toArray
+let phraseLength = 3
+let phraseWordPairs = getPhraseWordPairs text phraseLength
 
-let startPhrase = getRandomItem keys
-let newText = splitText startPhrase |> Array.toList
+let map = getMarkovMap phraseWordPairs
 
-appendNewWords map newText pairlength 100
-|> printfn "%A"
+printfn "%A" map
+
+
+
+
+
+
+
+
+
+
+
+// let rnd = Random()
+// let phrases = phraseWordPairs |> Seq.map (fun (_,word) -> word)
+
+
+// let getRandomItem seq =
+//     let length = Seq.length seq
+//     seq |> Seq.item (rnd.Next length)
+
+// let getPreviousWords phraseLength words =
+//     words
+//     |> Seq.windowed phraseLength
+//     |> Seq.last
+
+// let getNextWord (map : Map<_,_>) (previousWords : string[]) =
+//     previousWords
+//     |> joinWords
+//     |> map.TryGetValue
+//     |> fun (_,v) -> getRandomItem v
+
+// let buildNewText pairlength map newText =
+//     newText
+//     |> getPreviousWords (pairlength-1)
+//     |> getNextWord map
+//     |> fun w -> newText @ [w]
+
+// let appendNewWords (markovMap : Map<string, string list>) startPhrase pairlength amount =
+//     let mutable newtext = startPhrase
+//     for i in 1..amount do
+//         newtext <- buildNewText pairlength markovMap newtext
+//     newtext
+
+// let startPhrase = getRandomItem phrases
+// let newText = splitText startPhrase |> Array.toList
+
+// appendNewWords map newText phraseLength 40
+// |> joinWords
+// |> printfn "%A"
