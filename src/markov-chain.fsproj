@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="MarkovTextUtils.fs" />
+    <Compile Include="MarkovText.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
