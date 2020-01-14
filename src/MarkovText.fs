@@ -2,16 +2,16 @@ namespace MarkovText
 
 open MarkovTextUtils
 
-module MarkovText =
-    type TextGenerator(text, phraseLength) =
 
-        member this.PhraseLength = phraseLength
-        member this.Pairs = MarkovTextUtils.getPhraseWordPairs text phraseLength
-        member this.Map = MarkovTextUtils.buildMarkovMap this.Pairs
+module MarkovText =
+
+    type TextGenerator(text, phraseLength) =
+        let pairs = MarkovTextUtils.getPhraseWordPairs text phraseLength
+        let map = MarkovTextUtils.buildMarkovMap pairs
 
         member this.GenerateText length =
-            let startPhrase = MarkovTextUtils.getPhrases this.Pairs
+            let startPhrase = MarkovTextUtils.getPhrases pairs
                               |> MarkovTextUtils.getRandomItem
 
-            MarkovTextUtils.appendGeneratedWords this.Map startPhrase this.PhraseLength (length-phraseLength)
+            MarkovTextUtils.appendGeneratedWords map startPhrase phraseLength (length-phraseLength)
             |> MarkovTextUtils.joinWords
