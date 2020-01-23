@@ -3,7 +3,6 @@ namespace MarkovTextUtils
 open System
 open System.Text.RegularExpressions
 
-
 module MarkovTextUtils =
 
     let joinWords = String.concat " "
@@ -13,7 +12,7 @@ module MarkovTextUtils =
         |> Array.toList
 
     let replaceSpecialCharacters text =
-        Regex.Replace (text, @"\\\r", " ")
+        Regex.Replace (text, @"\\\w", " ")
 
     let removeInvalidWords words =
         words

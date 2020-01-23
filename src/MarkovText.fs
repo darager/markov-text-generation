@@ -2,7 +2,6 @@ namespace MarkovText
 
 open MarkovTextUtils
 
-
 module MarkovText =
 
     type TextGenerator(text, phraseLength) =
